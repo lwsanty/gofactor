@@ -1,0 +1,4 @@
+var( 
+	X1 int
+	X2 int
+)

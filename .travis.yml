@@ -1,0 +1,9 @@
+language: go
+
+go:
+  - '1.13.x'
+
+go_import_path: github.com/lwsanty/gofactor
+
+script:
+  - go test -v ./...

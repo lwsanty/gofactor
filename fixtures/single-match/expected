@@ -1,0 +1,23 @@
+package main
+
+import "fmt"
+
+func main() {
+	var (
+		i int
+		X int
+	)
+	if i%2 == 1 {
+		i = 1
+	} else {
+		X = 1
+	}
+	fmt.Println(i)
+}
+func a(i, X int) {
+	if i%2 == 1 {
+		i = 1
+	} else {
+		X = 1
+	}
+}
