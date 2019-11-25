@@ -1,6 +1,31 @@
 # gofactor
 Advanced utility for golang refactor based on DSL transformations provided by [bblfsh/sdk](https://github.com/bblfsh/sdk)
 
+## Requirements
+- go 1.13
+
+## Build
+Currently library cannot be built because of `bblfsh/go-driver` dependency [issue](https://github.com/bblfsh/go-driver/issues/67)
+
+Build CLI example:
+1) clone `bblfsh/go-driver` repo
+```bash
+git clone https://github.com/bblfsh/go-driver
+```
+2) clone `gofator` repo
+```bash
+git clone https://github.com/lwsanty/gofactor
+```
+3) in `go-factor`'s modules file update `go-driver`'s dependency replacement to the local one
+```bash
+replace github.com/bblfsh/go-driver/v2 v2.7.3 => /your/local/go-driver
+```
+4) build CLI
+```bash
+cd example/
+go build
+```
+
 ## Usage example
 Imagine you have a piece of code
 ```go
@@ -148,7 +173,7 @@ See `fixtures`
 6) convert golang `AST` to string
 
 ## Roadmap
-- currently library cannot be build because of `bblfsh/go-driver` dependency issue, fix this part 
+- currently library cannot be built because of `bblfsh/go-driver` dependency [issue](https://github.com/bblfsh/go-driver/issues/67), fix this part 
 - support functions refactor
 - handle cases with cascade `if`s, `switch`es and tail recursions
 - during the transformations we are forced to drop nodes positions, need to investigate the possibilities of preserving/reconstructing them(probably using DST nodes could help, related issue https://github.com/dave/dst/issues/38) 
