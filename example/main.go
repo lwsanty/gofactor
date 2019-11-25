@@ -48,8 +48,6 @@ func main() {
 	refactor, err := gofactor.NewRefactor(string(beforeData), string(afterData))
 	handleErr(err)
 
-	handleErr(refactor.Prepare())
-
 	code, err := refactor.Apply(string(testData))
 	handleErr(err)
 

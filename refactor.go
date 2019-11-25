@@ -31,13 +31,18 @@ type Refactor struct {
 }
 
 func NewRefactor(before, after string) (*Refactor, error) {
-	return &Refactor{
+	r := &Refactor{
 		before: before,
 		after:  after,
-	}, nil
+	}
+
+	if err := r.prepare(); err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
-func (r *Refactor) Prepare() error {
+func (r *Refactor) prepare() error {
 	in, err := parseNodeHack(r.before)
 	if err != nil {
 		return err

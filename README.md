@@ -106,15 +106,8 @@ if err != nil {
     log.Error(err)
     os.Exit(1)
 }
-```
-2) call `Prepare` function to generate transformations mappings
-```go
-if err := refactor.Prepare(); err != nil {
-    log.Error(err)
-    os.Exit(1)
-}
 ``` 
-3) Apply generated transformations to the desired code
+2) Apply generated transformations to the desired code
 ```go
 code, err := refactor.Apply(desiredCode)
 if err != nil {

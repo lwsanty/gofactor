@@ -42,8 +42,6 @@ func testCase(t *testing.T, d string) {
 	refactor, err := gofactor.NewRefactor(before, after)
 	require.NoError(t, err)
 
-	require.NoError(t, refactor.Prepare())
-
 	actual, err := refactor.Apply(example)
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
