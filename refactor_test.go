@@ -33,10 +33,10 @@ func testCase(t *testing.T, d string) {
 	}
 
 	var (
-		after    = getFileContent("after")
-		before   = getFileContent("before")
-		example  = getFileContent("example.go")
-		expected = getFileContent("expected")
+		after    = getFileContent("after.txt")
+		before   = getFileContent("before.txt")
+		example  = getFileContent("example.txt")
+		expected = getFileContent("expected.txt")
 	)
 
 	refactor, err := gofactor.NewRefactor(before, after)
