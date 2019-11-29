@@ -18,11 +18,15 @@ import (
 	"github.com/lwsanty/gofactor/transform/vartransform"
 )
 
-const mainTemplate = `package main
+const (
+	debug = false
+
+	mainTemplate = `package main
 
 func main() {
 	%s
 }`
+)
 
 type Refactor struct {
 	before string
@@ -53,15 +57,29 @@ func (r *Refactor) prepare() error {
 		return err
 	}
 
-	// debug
-	// dump(in, "../out/1.yml")
-	// dump(out, "../out/2.yml")
+	inE, isE1 := asExpr(in)
+	outE, isE2 := asExpr(out)
+	if isE1 && isE2 {
+		in, out = inE, outE
+	}
 
-	// left side always does Check and the right side performs Construct
-	matrOpIn := &matroshka.MatroshkaArray{nodeToOp(in).(transformer.ArrayOp)}
-	matrOpOut := &matroshka.MatroshkaArray{nodeToOp(out).(transformer.ArrayOp)}
+	if debug {
+		dump(in, "before.yml")
+		dump(out, "after.yml")
+	}
 
-	r.m = transformer.Mappings(transformer.Map(matrOpIn, matrOpOut))
+	var inOp, outOp transformer.Op
+	if isE1 && isE2 {
+		// both sides are expression pattern - omit array ops and match directly on objects
+		inOp = nodeToOp(in)
+		outOp = nodeToOp(out)
+	} else {
+		// we need both: left side always does Check and the right side performs Construct
+		inOp = &matroshka.MatroshkaArray{Op: nodeToOp(in).(transformer.ArrayOp)}
+		outOp = &matroshka.MatroshkaArray{Op: nodeToOp(out).(transformer.ArrayOp)}
+	}
+
+	r.m = transformer.Mappings(transformer.Map(inOp, outOp))
 	return nil
 }
 
@@ -76,8 +94,9 @@ func (r *Refactor) Apply(code string) (string, error) {
 		return "", err
 	}
 
-	// debug
-	// dump(test, "../out/test.yml")
+	if debug {
+		dump(test, "test.yml")
+	}
 
 	res, err := r.m.Do(test)
 	if err != nil {
@@ -152,6 +171,24 @@ func parseNodeHack(snippet string) (nodes.Node, error) {
 
 	list := wrapped.(nodes.Object)["Decls"].(nodes.Array)[0].(nodes.Object)["Body"].(nodes.Object)["List"].(nodes.Array)
 	return trimPositions(list)
+}
+
+// asExpr tries to convert a given AST node to an expression.
+func asExpr(n nodes.Node) (nodes.Node, bool) {
+	x := n
+	if arr, ok := n.(nodes.Array); ok {
+		if len(arr) != 1 {
+			// set of statements, not a single expression
+			return n, false
+		}
+		x = arr[0]
+	}
+	if uast.TypeOf(x) != "ExprStmt" {
+		// another statement, probably
+		return n, false
+	}
+	// get underlying expression
+	return x.(nodes.Object)["X"], true
 }
 
 // TODO gofmt
