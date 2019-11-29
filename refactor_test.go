@@ -26,6 +26,11 @@ func testCase(t *testing.T, d string) {
 	getFileContent := func(name string) string {
 		data, err := ioutil.ReadFile(filepath.Join(d, name))
 		require.NoError(t, err)
+		return string(data)
+	}
+	getFormattedContent := func(name string) string {
+		data, err := ioutil.ReadFile(filepath.Join(d, name))
+		require.NoError(t, err)
 
 		fdata, err := format.Source(data)
 		require.NoError(t, err)
@@ -33,10 +38,10 @@ func testCase(t *testing.T, d string) {
 	}
 
 	var (
-		after    = getFileContent("after")
-		before   = getFileContent("before")
-		example  = getFileContent("example.go")
-		expected = getFileContent("expected")
+		after    = getFileContent("after.txt")
+		before   = getFileContent("before.txt")
+		example  = getFormattedContent("example.txt")
+		expected = getFormattedContent("expected.txt")
 	)
 
 	refactor, err := gofactor.NewRefactor(before, after)

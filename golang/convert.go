@@ -174,13 +174,16 @@ func nodeToAST(n nodes.Node, t reflect.Type) reflect.Value {
 
 			// if desired type is pointer, set(returned) type should be the reference to goTypeVal
 			if desiredType.Kind() == reflect.Ptr || desiredType.Kind() == reflect.Interface {
-				isZero := goTypeVal.IsZero()
-				if isZero {
+				if goTypeVal.IsZero() {
 					if v == nil {
 						continue
 					}
 					goTypeVal = reflect.New(goTypeVal.Type())
 				}
+			} else if desiredType.Kind() == reflect.Slice && goTypeVal.Kind() != reflect.Slice {
+				arr := reflect.MakeSlice(desiredType, 1, 1)
+				arr.Index(0).Set(goTypeVal)
+				goTypeVal = arr
 			}
 
 			// this allows us to convert typed go types to go types

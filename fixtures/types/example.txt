@@ -1,0 +1,9 @@
+package main
+
+type Slice struct{
+    data *int
+}
+
+func foo() {
+	var a Slice
+}

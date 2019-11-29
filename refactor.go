@@ -18,11 +18,7 @@ import (
 	"github.com/lwsanty/gofactor/transform/vartransform"
 )
 
-const mainTemplate = `package main
-
-func main() {
-	%s
-}`
+const debug = false
 
 type Refactor struct {
 	before string
@@ -45,23 +41,41 @@ func NewRefactor(before, after string) (*Refactor, error) {
 func (r *Refactor) prepare() error {
 	in, err := parseNodeHack(r.before)
 	if err != nil {
-		return err
+		return fmt.Errorf("error parsing source sample: %v", err)
 	}
 
 	out, err := parseNodeHack(r.after)
 	if err != nil {
-		return err
+		return fmt.Errorf("error parsing destination sample: %v", err)
 	}
 
-	// debug
-	// dump(in, "../out/1.yml")
-	// dump(out, "../out/2.yml")
+	if debug {
+		dump(in, "before.yml")
+		dump(out, "after.yml")
+	}
 
-	// left side always does Check and the right side performs Construct
-	matrOpIn := &matroshka.MatroshkaArray{nodeToOp(in).(transformer.ArrayOp)}
-	matrOpOut := &matroshka.MatroshkaArray{nodeToOp(out).(transformer.ArrayOp)}
+	_, isArr1 := in.(nodes.Array)
+	_, isArr2 := out.(nodes.Array)
 
-	r.m = transformer.Mappings(transformer.Map(matrOpIn, matrOpOut))
+	var inOp, outOp transformer.Op
+	if isArr1 || isArr2 {
+		// both should be arrays for out custom operator to work
+		if !isArr1 {
+			in = nodes.Array{in}
+		}
+		if !isArr2 {
+			out = nodes.Array{out}
+		}
+		// make sure we can convert part of an array: we need a custom operation for it
+		// left side (in) always does Check and the right side (out) performs Construct
+		inOp = &matroshka.MatroshkaArray{Op: nodeToOp(in).(transformer.ArrayOp)}
+		outOp = &matroshka.MatroshkaArray{Op: nodeToOp(out).(transformer.ArrayOp)}
+	} else {
+		inOp = nodeToOp(in)
+		outOp = nodeToOp(out)
+	}
+
+	r.m = transformer.Mappings(transformer.Map(inOp, outOp))
 	return nil
 }
 
@@ -76,8 +90,9 @@ func (r *Refactor) Apply(code string) (string, error) {
 		return "", err
 	}
 
-	// debug
-	// dump(test, "../out/test.yml")
+	if debug {
+		dump(test, "test.yml")
+	}
 
 	res, err := r.m.Do(test)
 	if err != nil {
@@ -145,18 +160,99 @@ func nodeToOp(n nodes.Node) transformer.Op {
 
 // TODO functions
 func parseNodeHack(snippet string) (nodes.Node, error) {
-	wrapped, err := golang.Parse(wrapInMain(snippet))
+	snippet = strings.TrimSpace(snippet)
+	root, err := parseAsType(snippet)
+	if err == nil {
+		return trimPositions(root)
+	}
+	root, err = parseAsExpr(snippet)
+	if err == nil {
+		return trimPositions(root)
+	}
+	root, err = parseAsDecls(snippet)
+	if err == nil {
+		return trimPositions(root)
+	}
+	root, err = parseAsStmts(snippet)
+	if err == nil {
+		return trimPositions(root)
+	}
+	return nil, err
+}
+
+func unwrapFile(root nodes.Node) nodes.Array {
+	return root.(nodes.Object)["Decls"].(nodes.Array)
+}
+
+func parseAsDecls(code string) (nodes.Node, error) {
+	wrapped, err := golang.Parse(fmt.Sprintf(`package main
+
+%s
+`, code))
 	if err != nil {
 		return nil, err
 	}
-
-	list := wrapped.(nodes.Object)["Decls"].(nodes.Array)[0].(nodes.Object)["Body"].(nodes.Object)["List"].(nodes.Array)
-	return trimPositions(list)
+	arr := unwrapFile(wrapped)
+	if len(arr) == 1 {
+		return arr[0], nil
+	}
+	return arr, nil
 }
 
-// TODO gofmt
-func wrapInMain(code string) string {
-	return fmt.Sprintf(mainTemplate, code)
+func parseAsStmts(code string) (nodes.Node, error) {
+	wrapped, err := golang.Parse(fmt.Sprintf(`package main
+func main() {
+	%s
+}
+`, code))
+	if err != nil {
+		return nil, err
+	}
+	arr := unwrapFile(wrapped)[0].(nodes.Object)["Body"].(nodes.Object)["List"].(nodes.Array)
+	if len(arr) == 1 {
+		return arr[0], nil
+	}
+	return arr, nil
+}
+
+func parseAsExpr(code string) (nodes.Node, error) {
+	wrapped, err := golang.Parse(fmt.Sprintf(`package main
+var _ = %s
+`, code))
+	if err != nil {
+		return nil, err
+	}
+	n := unwrapFile(wrapped)[0].(nodes.Object)["Specs"].(nodes.Array)[0].(nodes.Object)["Values"].(nodes.Array)[0]
+	return n, nil
+}
+
+func parseAsType(code string) (nodes.Node, error) {
+	wrapped, err := golang.Parse(fmt.Sprintf(`package main
+var _ %s
+`, code))
+	if err != nil {
+		return nil, err
+	}
+	n := unwrapFile(wrapped)[0].(nodes.Object)["Specs"].(nodes.Array)[0].(nodes.Object)["Type"]
+	return n, nil
+}
+
+// asExpr tries to convert a given AST node to an expression.
+func asExpr(n nodes.Node) (nodes.Node, bool) {
+	x := n
+	if arr, ok := n.(nodes.Array); ok {
+		if len(arr) != 1 {
+			// set of statements, not a single expression
+			return n, false
+		}
+		x = arr[0]
+	}
+	if uast.TypeOf(x) != "ExprStmt" {
+		// another statement, probably
+		return n, false
+	}
+	// get underlying expression
+	return x.(nodes.Object)["X"], true
 }
 
 func dump(n nodes.Node, filePath string) {
