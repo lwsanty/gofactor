@@ -9,11 +9,11 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/bblfsh/go-driver/v2/driver/golang"
 	"github.com/bblfsh/sdk/v3/uast"
 	"github.com/bblfsh/sdk/v3/uast/nodes"
 	"github.com/bblfsh/sdk/v3/uast/transformer"
 	"github.com/bblfsh/sdk/v3/uast/uastyaml"
+	"github.com/lwsanty/gofactor/golang"
 	"github.com/lwsanty/gofactor/transform/matroshka"
 	"github.com/lwsanty/gofactor/transform/vartransform"
 )
