@@ -1,0 +1,7 @@
+package main
+
+type Slice []int
+
+func foo() {
+	var a Slice
+}
